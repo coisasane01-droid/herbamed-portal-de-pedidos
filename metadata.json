@@ -1,0 +1,7 @@
+{
+  "name": "HERBAMED - Portal de Pedidos",
+  "description": "Uma plataforma robusta de pedidos para a HERBAMED, com catálogo de produtos naturais, regras de pedido mínimo, faturamento flexível e integração com WhatsApp/Email.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
