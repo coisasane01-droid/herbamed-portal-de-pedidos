@@ -1,90 +1,33 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>HERBAMED - Pedidos</title>
-    
-    <!-- Script para Detecção de PWA Duplo (Site vs Admin) -->
-    <script>
-      (function() {
-        const isAdmin = window.location.hash.includes('/admin');
-        const manifestLink = document.createElement('link');
-        manifestLink.rel = 'manifest';
-        manifestLink.id = 'pwa-manifest';
-        manifestLink.href = isAdmin ? './admin/manifest.json' : './manifest.json';
-        document.head.appendChild(manifestLink);
-      })();
-    </script>
-    
-    <!-- Meta Tags para pré-visualização do Link (WhatsApp, Facebook, LinkedIn) -->
-    <meta property="og:title" content="HERBAMED - Portal de Pedidos" />
-    <meta property="og:description" content="Catálogo oficial Herbamed. Realize seus pedidos industriais com facilidade e segurança." />
-    <meta property="og:image" content="https://images.unsplash.com/photo-1615485242231-8982db93cc0c?w=1200&h=630&fit=crop" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://herbamedportal.netlify.app/" />
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HERBAMED - Pedidos</title>
 
-    <!-- Twitter Meta Tags -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="HERBAMED - Portal de Pedidos" />
-    <meta name="twitter:description" content="Catálogo oficial Herbamed. Realize seus pedidos industriais com facilidade." />
-    <meta name="twitter:image" content="https://images.unsplash.com/photo-1615485242231-8982db93cc0c?w=1200&h=630&fit=crop" />
+  <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#2e7d32" id="theme-color-meta" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="HerbaMed" />
-    <meta name="mobile-web-app-capable" content="yes">
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <!-- Biblioteca para conversão de HTML em PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <style>
-      body {
-        font-family: 'Inter', sans-serif;
-        -webkit-tap-highlight-color: transparent;
-      }
-      .no-scrollbar::-webkit-scrollbar {
-        display: none;
-      }
-      .no-scrollbar {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-      }
-      html, body {
-        width: 100%;
-        overflow-x: hidden;
-        min-height: 100vh;
-        margin: 0;
-        padding: 0;
-      }
-      #root {
-        display: flex;
-        flex-direction: column;
-        min-height: 100vh;
-        width: 100%;
-        position: relative;
-      }
-    </style>
   <script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-router-dom": "https://esm.sh/react-router-dom@^7.12.0",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.7",
-    "@google/genai": "https://esm.sh/@google/genai@^1.35.0"
+  {
+    "imports": {
+      "react": "https://esm.sh/react@19",
+      "react-dom/client": "https://esm.sh/react-dom@19/client"
+    }
   }
-}
-</script>
+  </script>
 </head>
-  <body class="bg-gray-50 text-gray-900 overflow-x-hidden">
-    <div id="root"></div>
-  </body>
+
+<body class="bg-gray-50">
+  <div id="root"></div>
+
+  <script type="module">
+    import React from "react";
+    import { createRoot } from "react-dom/client";
+
+    const root = createRoot(document.getElementById("root"));
+    root.render(
+      React.createElement("h1", { className: "text-2xl p-4" }, "HERBAMED carregou ✅")
+    );
+  </script>
+</body>
 </html>
