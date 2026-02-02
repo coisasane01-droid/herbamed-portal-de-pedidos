@@ -25,7 +25,7 @@ export const Catalog: React.FC<CatalogProps> = ({ products, onAddToCart, setting
   const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
   const [scannerError, setScannerError] = useState<string | null>(null);
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
-  const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(new Set());
+  const [activeDescriptionProduct, setActiveDescriptionProduct] = useState<Product | null>(null);
   const [activeNutritionalInfo, setActiveNutritionalInfo] = useState<Product | null>(null);
   const [activeBenefitsText, setActiveBenefitsText] = useState<Product | null>(null);
   
@@ -42,7 +42,6 @@ export const Catalog: React.FC<CatalogProps> = ({ products, onAddToCart, setting
     const id = (match && match[1].length === 11) ? match[1] : null;
     
     if (!id) return '';
-    // Adicionado loop=1 e playlist=ID para repetição infinita no YouTube
     return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&playsinline=1&enablejsapi=1&rel=0&iv_load_policy=3&modestbranding=1&origin=${window.location.origin}`;
   };
 
@@ -201,15 +200,6 @@ export const Catalog: React.FC<CatalogProps> = ({ products, onAddToCart, setting
     localStorage.setItem('herbamed_welcome_accepted', 'true');
   };
 
-  const toggleDescription = (productId: string) => {
-    setExpandedDescriptions(prev => {
-      const next = new Set(prev);
-      if (next.has(productId)) next.delete(productId);
-      else next.add(productId);
-      return next;
-    });
-  };
-
   const ResponsiveBanner = ({ src }: { src: string }) => (
     <div className="w-full overflow-hidden flex items-center justify-center bg-gray-100">
       <img src={src} className="w-full h-auto block object-cover" alt="Banner" style={{ maxHeight: '450px', minHeight: '200px' }} />
@@ -253,6 +243,43 @@ export const Catalog: React.FC<CatalogProps> = ({ products, onAddToCart, setting
             >
               <X className="h-6 w-6" />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE DESCRIÇÃO COMPLETA */}
+      {activeDescriptionProduct && (
+        <div 
+          className="fixed inset-0 z-[600] bg-black/80 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-300"
+          onClick={() => setActiveDescriptionProduct(null)}
+        >
+          <div 
+            className="bg-white rounded-[40px] w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-gray-50 p-8 border-b border-gray-100 flex justify-between items-center">
+               <div className="flex items-center gap-4">
+                  <div className="p-3 bg-emerald-100 rounded-2xl text-emerald-600">
+                     <Info className="h-6 w-6" />
+                  </div>
+                  <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight">Descrição do Produto</h3>
+               </div>
+               <button onClick={() => setActiveDescriptionProduct(null)} className="p-2 bg-white rounded-full text-gray-400 hover:text-red-500 transition-colors">
+                 <X className="h-6 w-6" />
+               </button>
+            </div>
+            <div className="p-8 max-h-[60vh] overflow-y-auto no-scrollbar">
+               <div className="mb-4">
+                 <h4 className="font-black text-lg text-gray-900 leading-tight">{activeDescriptionProduct.name}</h4>
+                 <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mt-1">{activeDescriptionProduct.category}</p>
+               </div>
+               <div className="text-sm text-gray-600 leading-relaxed font-medium whitespace-pre-wrap">
+                  {activeDescriptionProduct.description || "Nenhuma descrição detalhada disponível no momento."}
+               </div>
+            </div>
+            <div className="p-8 border-t border-gray-50">
+               <button onClick={() => setActiveDescriptionProduct(null)} className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest active:scale-95 transition-all">Fechar</button>
+            </div>
           </div>
         </div>
       )}
@@ -481,7 +508,6 @@ export const Catalog: React.FC<CatalogProps> = ({ products, onAddToCart, setting
         {settings.bannerMode === 'video' ? (
           <div className="w-full aspect-video md:max-h-[450px] bg-black flex flex-col items-center justify-center overflow-hidden">
             {settings.bannerVideoFileUrl ? (
-              /* Player Nativo para vídeo carregado via Upload - Autoplay, Mute e Loop */
               <video 
                 className="w-full h-full z-10"
                 controls={false}
@@ -492,7 +518,6 @@ export const Catalog: React.FC<CatalogProps> = ({ products, onAddToCart, setting
                 src={settings.bannerVideoFileUrl}
               />
             ) : (
-              /* Embed do YouTube - Autoplay, Mute e Loop configurados via URL */
               <iframe 
                 className="w-full h-full z-10" 
                 src={getYoutubeEmbedUrl(settings.bannerVideoUrl)} 
@@ -610,7 +635,6 @@ export const Catalog: React.FC<CatalogProps> = ({ products, onAddToCart, setting
             .map(product => {
               const originalPrice = product.originalPrice || (product.price * 1.18);
               const qty = getProductQuantity(product.id);
-              const isDescriptionExpanded = expandedDescriptions.has(product.id);
 
               return (
                 <div key={product.id} className="bg-white rounded-[40px] overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.12)] transition-all duration-500 border border-gray-100 flex flex-col h-full relative group">
@@ -642,21 +666,13 @@ export const Catalog: React.FC<CatalogProps> = ({ products, onAddToCart, setting
                     </h3>
                     
                     <button 
-                      onClick={() => toggleDescription(product.id)}
+                      onClick={() => setActiveDescriptionProduct(product)}
                       className="flex items-center gap-1.5 text-gray-400 hover:text-emerald-600 transition-colors mb-4"
                     >
                       <Info className="h-3 w-3" />
-                      <span className="text-[9px] font-black uppercase tracking-widest">{isDescriptionExpanded ? 'Fechar' : 'Ver Descrição'}</span>
-                      {isDescriptionExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                      <span className="text-[9px] font-black uppercase tracking-widest">Ver Descrição</span>
+                      <ChevronRight className="h-3 w-3" />
                     </button>
-
-                    {isDescriptionExpanded && (
-                      <div className="w-full bg-gray-50 p-4 rounded-2xl mb-6 text-left animate-in slide-in-from-top-2 duration-300">
-                        <p className="text-[11px] font-medium text-gray-500 leading-relaxed italic">
-                          {product.description || "Descrição detalhada em breve para este SKU Herbamed."}
-                        </p>
-                      </div>
-                    )}
 
                     <div className="space-y-1 mb-6">
                       <div className="flex flex-col items-center justify-center">
