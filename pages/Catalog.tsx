@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Product, SiteSettings, Category } from '../types';
 import { Search, Plus, Minus, X, ScanLine, Share, Image as ImageIcon, Play, Smartphone, Barcode, Camera, RefreshCw, PlusSquare, Download, AlertCircle, ShieldCheck, Sparkles, ChevronRight, Maximize2, FileText, Calendar, Info, ChevronDown, ChevronUp, ClipboardList, Activity, Smartphone as SmartphoneIcon } from 'lucide-react';
-import { PromoCategoryCarousel } from '../components/PromoCategoryCarousel';
+import PromoCategoryCarousel from "../components/components/PromoCategoryCarousel";
 import { PromoCategoryPopup } from '../components/PromoCategoryPopup';
 
 interface CatalogProps {
