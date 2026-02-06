@@ -1,58 +1,87 @@
-import { useState } from "react";
-import Layout from "../components/components/Layout";
-import IsolatedProductCard from "../components/components/IsolatedProductCard";
-import PromoCategoryPopup from "../components/components/PromoCategoryPopup";
+import { useEffect, useState } from "react";
 
-const Catalog = () => {
-  const [promoOpen, setPromoOpen] = useState(false);
+// ✅ IMPORTS CORRIGIDOS (3 níveis de components)
+import Layout from "../components/components/components/Layout";
+import PromoCategoryCarousel from "../components/components/components/PromoCategoryCarousel";
+import PromoCategoryPopup from "../components/components/components/PromoCategoryPopup";
+import IsolatedProductCard from "../components/components/components/IsolatedProductCard";
+
+import { supabase } from "../lib/supabase";
+
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  image_url?: string;
+  category?: string;
+}
+
+export default function Catalog() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [showPromoPopup, setShowPromoPopup] = useState(false);
 
-  const openPromo = (category: string) => {
-    setSelectedCategory(category);
-    setPromoOpen(true);
-  };
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
-  const closePromo = () => {
-    setPromoOpen(false);
-    setSelectedCategory(null);
-  };
+  async function fetchProducts() {
+    setLoading(true);
+
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .order("name", { ascending: true });
+
+    if (!error && data) {
+      setProducts(data);
+    }
+
+    setLoading(false);
+  }
+
+  const filteredProducts = selectedCategory
+    ? products.filter((p) => p.category === selectedCategory)
+    : products;
 
   return (
     <Layout>
-      <div className="p-4 space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Catálogo de SKUs</h1>
-            <p className="text-sm text-gray-500">
-              Gestão de produtos industriais
-            </p>
-          </div>
-
-          <button
-            onClick={() => openPromo("Promoções")}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition"
-          >
-            NOVO SKU
-          </button>
-        </div>
-
-        {/* LISTAGEM DE PRODUTOS */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <IsolatedProductCard />
-          <IsolatedProductCard />
-          <IsolatedProductCard />
-        </div>
-      </div>
-
-      {/* POPUP DE CATEGORIA */}
-      {promoOpen && selectedCategory && (
-        <PromoCategoryPopup
-          category={selectedCategory}
-          onClose={closePromo}
+      <div className="px-4 py-6 space-y-6">
+        {/* 🔥 Carrossel de categorias promocionais */}
+        <PromoCategoryCarousel
+          onSelectCategory={(category) => {
+            setSelectedCategory(category);
+            setShowPromoPopup(true);
+          }}
         />
-      )}
+
+        {/* 🪟 Popup promocional */}
+        {showPromoPopup && (
+          <PromoCategoryPopup
+            category={selectedCategory}
+            onClose={() => setShowPromoPopup(false)}
+          />
+        )}
+
+        {/* 📦 Lista de produtos */}
+        {loading ? (
+          <p className="text-center text-gray-500">Carregando produtos...</p>
+        ) : filteredProducts.length === 0 ? (
+          <p className="text-center text-gray-400">
+            Nenhum produto encontrado
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {filteredProducts.map((product) => (
+              <IsolatedProductCard
+                key={product.id}
+                product={product}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </Layout>
   );
-};
-
-export default Catalog;
+}
