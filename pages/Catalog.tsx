@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 
-// ✅ IMPORTS CORRIGIDOS (3 níveis de components)
-import Layout from "../components/components/components/Layout";
-import PromoCategoryCarousel from "../components/components/components/PromoCategoryCarousel";
-import PromoCategoryPopup from "../components/components/components/PromoCategoryPopup";
-import IsolatedProductCard from "../components/components/components/IsolatedProductCard";
+// ✅ CAMINHOS CORRETOS (2 níveis, não 3)
+import Layout from "../components/components/Layout";
+import PromoCategoryCarousel from "../components/components/PromoCategoryCarousel";
+import PromoCategoryPopup from "../components/components/PromoCategoryPopup";
+import IsolatedProductCard from "../components/components/IsolatedProductCard";
 
 import { supabase } from "../lib/supabase";
 
@@ -48,7 +48,6 @@ export default function Catalog() {
   return (
     <Layout>
       <div className="px-4 py-6 space-y-6">
-        {/* 🔥 Carrossel de categorias promocionais */}
         <PromoCategoryCarousel
           onSelectCategory={(category) => {
             setSelectedCategory(category);
@@ -56,7 +55,6 @@ export default function Catalog() {
           }}
         />
 
-        {/* 🪟 Popup promocional */}
         {showPromoPopup && (
           <PromoCategoryPopup
             category={selectedCategory}
@@ -64,9 +62,10 @@ export default function Catalog() {
           />
         )}
 
-        {/* 📦 Lista de produtos */}
         {loading ? (
-          <p className="text-center text-gray-500">Carregando produtos...</p>
+          <p className="text-center text-gray-500">
+            Carregando produtos...
+          </p>
         ) : filteredProducts.length === 0 ? (
           <p className="text-center text-gray-400">
             Nenhum produto encontrado
