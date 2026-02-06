@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Product, CartItem, Order, SiteSettings, User } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
@@ -66,6 +65,8 @@ const INITIAL_SETTINGS: SiteSettings = {
   metaImageUrl: 'https://images.unsplash.com/photo-1615485242231-8982db93cc0c?w=1200&h=630&fit=crop',
   enableFreeShipping: true,
   freeShippingLabel: 'Grátis',
+  categoryTitleCase: 'uppercase',
+  promoCategoryCards: [], // Inicialização isolada
   aiCampaigns: {
     whatsappStatus: 'disconnected',
     whatsappApiKey: '',

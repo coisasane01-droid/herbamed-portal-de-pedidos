@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import { Product, SiteSettings, Order, Category, AICampaignSettings, User } from '../types';
+import { Product, SiteSettings, Order, Category, AICampaignSettings, User, PromoCategoryCard } from '../types';
 import { checkSupabaseConnection, ConnectionStatus } from '../lib/supabase';
 import { 
   LayoutDashboard, Package, Settings as SettingsIcon, ShoppingCart, 
@@ -16,7 +15,7 @@ import {
   RotateCcw, History, Anchor, Star, Layers, Eraser, Eye, EyeOff, Moon, Sun, Camera, Barcode,
   Users, AlertOctagon, TrendingDown, DollarSign, Medal, AlignLeft, Activity, ClipboardList,
   StickyNote, ArrowRightLeft, ImagePlus as ImagePlusIcon, FileCheck, LockKeyhole, UnlockKeyhole,
-  Share2, Video, Film, Shield, Mail, KeyRound, Award
+  Share2, Video, Film, Shield, Mail, KeyRound, Award, Tags, Search as SearchIcon, ScanLine
 } from 'lucide-react';
 
 interface AdminProps {
@@ -60,7 +59,7 @@ export const Admin: React.FC<AdminProps> = ({ products, setProducts, settings, s
   const [recoveryEmail, setRecoveryEmail] = useState('');
   const [recoveryLoading, setRecoveryLoading] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'orders' | 'settings' | 'integrations' | 'agenda' | 'users'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'orders' | 'settings' | 'integrations' | 'agenda' | 'users' | 'promocards'>('dashboard');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -70,6 +69,16 @@ export const Admin: React.FC<AdminProps> = ({ products, setProducts, settings, s
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const [uploadCallback, setUploadCallback] = useState<((url: string) => void) | null>(null);
+
+  // Filtro de busca de produtos para os cards promocionais
+  const [promoProductSearch, setPromoProductSearch] = useState('');
+
+  // ESTADOS ADICIONADOS PARA BUSCA E SCANNER NO CATÁLOGO DE SKUS
+  const [skuSearchTerm, setSkuSearchTerm] = useState('');
+  const [isAdminScanning, setIsAdminScanning] = useState(false);
+  const [adminScannerError, setAdminScannerError] = useState<string | null>(null);
+  const adminScannerVideoRef = useRef<HTMLVideoElement>(null);
+  const adminScannerStreamRef = useRef<MediaStream | null>(null);
 
   const [agendaItems, setAgendaItems] = useState<AgendaItem[]>(() => {
     const saved = localStorage.getItem('herbamed_admin_agenda');
@@ -157,6 +166,25 @@ export const Admin: React.FC<AdminProps> = ({ products, setProducts, settings, s
     fileInputRef.current?.click();
   };
 
+  // FUNÇÕES DO SCANNER DO ADMIN
+  const startAdminScanner = async () => {
+    setAdminScannerError(null);
+    setIsAdminScanning(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      adminScannerStreamRef.current = stream;
+      if (adminScannerVideoRef.current) adminScannerVideoRef.current.srcObject = stream;
+    } catch (err: any) {
+      setAdminScannerError("Erro ao acessar câmera.");
+      setIsAdminScanning(false);
+    }
+  };
+
+  const stopAdminScanner = () => {
+    if (adminScannerStreamRef.current) adminScannerStreamRef.current.getTracks().forEach(t => t.stop());
+    setIsAdminScanning(false);
+  };
+
   const handleAddAgendaItem = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newAgendaItem.client) return;
@@ -223,6 +251,7 @@ export const Admin: React.FC<AdminProps> = ({ products, setProducts, settings, s
       return; 
     }
     setAdminPassword(newPassword);
+    // Fix: Changed localStorage.getItem to localStorage.setItem to correctly store the new password.
     localStorage.setItem('herbamed_admin_key', newPassword);
     setNewPassword(''); setConfirmNewPassword('');
     alert("Senha de acesso administrativa atualizada!");
@@ -297,6 +326,7 @@ export const Admin: React.FC<AdminProps> = ({ products, setProducts, settings, s
     { id: 'dashboard', label: 'Painel Geral', icon: LayoutDashboard },
     { id: 'agenda', label: 'Agenda', icon: Calendar },
     { id: 'products', label: 'Catálogo SKUs', icon: Package },
+    { id: 'promocards', label: 'Cards Promo', icon: Tags }, // NOVO ITEM ADICIONAL
     { id: 'orders', label: 'Pedidos', icon: ShoppingCart },
     { id: 'users', label: 'Clientes', icon: Users },
     { id: 'integrations', label: 'IA & Marketing', icon: Zap },
@@ -395,6 +425,27 @@ export const Admin: React.FC<AdminProps> = ({ products, setProducts, settings, s
       <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={handleImageUpload} />
       <input type="file" accept="video/mp4,video/webm" ref={videoInputRef} className="hidden" onChange={handleVideoUpload} />
 
+      {/* OVERLAY DO SCANNER PARA ADMIN */}
+      {isAdminScanning && (
+        <div className="fixed inset-0 z-[700] bg-black flex flex-col items-center justify-center p-6 animate-in fade-in duration-300">
+          <div className="relative w-full max-w-lg aspect-square bg-gray-900 rounded-[40px] overflow-hidden shadow-2xl border-4 border-emerald-500/30">
+            <video ref={adminScannerVideoRef} className="absolute inset-0 w-full h-full object-cover" autoPlay playsInline />
+            <div className="absolute inset-0 border-[60px] border-black/40 pointer-events-none" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 border-2 border-emerald-500 rounded-[40px] shadow-[0_0_0_9999px_rgba(0,0,0,0.4)]">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-500 animate-scan-line shadow-[0_0_15px_#10b981]" />
+            </div>
+            <button onClick={stopAdminScanner} className="absolute top-8 right-8 p-4 bg-white/10 backdrop-blur-md rounded-full text-white hover:bg-white/20 transition-all">
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+          <p className="mt-8 text-white font-black uppercase text-xs tracking-[0.2em] animate-pulse">Escaneando SKU...</p>
+          <style>{`
+            @keyframes scan-line { 0% { top: 0; } 50% { top: 100%; } 100% { top: 0; } }
+            .animate-scan-line { animation: scan-line 3s ease-in-out infinite; }
+          `}</style>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row gap-8">
         <div className="md:w-64 flex-shrink-0">
           <div className="bg-white rounded-[32px] border border-gray-100 shadow-sm p-4 sticky top-24">
@@ -482,6 +533,219 @@ export const Admin: React.FC<AdminProps> = ({ products, setProducts, settings, s
             </div>
           )}
 
+          {activeTab === 'promocards' && (
+            <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+               <div className="flex justify-between items-center gap-4 mb-8">
+                <div><h3 className="text-3xl font-black text-gray-900 tracking-tighter uppercase">Cards Promo</h3><p className="text-gray-500 font-medium">Gerencie o carrossel de categorias promocionais.</p></div>
+                <button 
+                  onClick={() => setSettings({...settings, promoCategoryCards: [...(settings.promoCategoryCards || []), { id: Math.random().toString(36).substr(2, 9), title: '', imageUrl: '', categories: [], productIds: [], position: 'top', isActive: true }]})}
+                  className="bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl flex items-center gap-3"
+                >
+                   <Plus className="h-5 w-5" /> Novo Card
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                 {(settings.promoCategoryCards || []).map((card, idx) => (
+                    <div key={card.id} className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm space-y-6 group relative">
+                       <button 
+                        onClick={() => {
+                          const n = [...(settings.promoCategoryCards || [])];
+                          n.splice(idx, 1);
+                          setSettings({...settings, promoCategoryCards: n});
+                        }}
+                        className="absolute -top-2 -right-2 p-2 bg-red-500 text-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all"
+                       >
+                          <Trash2 className="h-4 w-4" />
+                       </button>
+
+                       <div className="flex items-center justify-between mb-4">
+                          <h5 className="font-black uppercase text-[10px] text-gray-400 tracking-widest">Configuração do Card #{idx + 1}</h5>
+                          <button 
+                            onClick={() => {
+                              const n = [...(settings.promoCategoryCards || [])];
+                              n[idx].isActive = !n[idx].isActive;
+                              setSettings({...settings, promoCategoryCards: n});
+                            }}
+                            className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border transition-all ${card.isActive ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-gray-50 text-gray-400 border-gray-100'}`}
+                          >
+                            {card.isActive ? 'Ativo' : 'Inativo'}
+                          </button>
+                       </div>
+
+                       <div className="space-y-4">
+                          <div>
+                             <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 ml-1">Título do Card</label>
+                             <input 
+                               type="text" 
+                               className="w-full p-4 bg-gray-50 rounded-2xl font-bold shadow-inner outline-none focus:border-emerald-500 border-2 border-transparent transition-all"
+                               value={card.title}
+                               onChange={e => {
+                                 const n = [...(settings.promoCategoryCards || [])];
+                                 n[idx].title = e.target.value;
+                                 setSettings({...settings, promoCategoryCards: n});
+                               }}
+                             />
+                          </div>
+
+                          <div>
+                             <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 ml-1">Imagem Banner (21:7)</label>
+                             <div className="relative group">
+                                <input 
+                                  type="text" 
+                                  className="w-full pl-4 pr-14 py-4 bg-gray-50 rounded-2xl font-bold text-xs shadow-inner outline-none focus:border-emerald-500 border-2 border-transparent transition-all"
+                                  value={card.imageUrl}
+                                  onChange={e => {
+                                    const n = [...(settings.promoCategoryCards || [])];
+                                    n[idx].imageUrl = e.target.value;
+                                    setSettings({...settings, promoCategoryCards: n});
+                                  }}
+                                />
+                                <button onClick={() => triggerUpload(url => {
+                                  const n = [...(settings.promoCategoryCards || [])];
+                                  n[idx].imageUrl = url;
+                                  setSettings({...settings, promoCategoryCards: n});
+                                })} className="absolute right-2 top-1/2 -translate-y-1/2 p-2.5 bg-gray-900 text-white rounded-xl">
+                                   <Camera className="h-4 w-4" />
+                                </button>
+                             </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                             <div>
+                                <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 ml-1">Posição na Home</label>
+                                <select 
+                                  className="w-full p-4 bg-gray-50 rounded-2xl font-bold text-xs"
+                                  value={card.position}
+                                  onChange={e => {
+                                    const n = [...(settings.promoCategoryCards || [])];
+                                    n[idx].position = e.target.value as any;
+                                    setSettings({...settings, promoCategoryCards: n});
+                                  }}
+                                >
+                                   <option value="top">Topo da Página</option>
+                                   <option value="middle">Meio (Entre SKUs)</option>
+                                   <option value="bottom">Final da Página</option>
+                                </select>
+                             </div>
+                             <div>
+                                <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 ml-1">Filtro por Categorias</label>
+                                <div className="space-y-2">
+                                   {/* Filtro 1 */}
+                                   <select 
+                                     className="w-full p-3 bg-gray-50 rounded-xl font-bold text-[10px] uppercase"
+                                     value={card.categories[0] || ''}
+                                     onChange={e => {
+                                       const n = [...(settings.promoCategoryCards || [])];
+                                       const cats = [...(n[idx].categories || [])];
+                                       cats[0] = e.target.value;
+                                       n[idx].categories = cats.filter(c => !!c);
+                                       setSettings({...settings, promoCategoryCards: n});
+                                     }}
+                                   >
+                                      <option value="">Selecione Categoria 1</option>
+                                      {settings.categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                                   </select>
+                                   {/* Filtro 2 */}
+                                   <select 
+                                     className="w-full p-3 bg-gray-50 rounded-xl font-bold text-[10px] uppercase"
+                                     value={card.categories[1] || ''}
+                                     onChange={e => {
+                                       const n = [...(settings.promoCategoryCards || [])];
+                                       const cats = [...(n[idx].categories || [])];
+                                       cats[1] = e.target.value;
+                                       n[idx].categories = cats.filter(c => !!c);
+                                       setSettings({...settings, promoCategoryCards: n});
+                                     }}
+                                   >
+                                      <option value="">Selecione Categoria 2 (Opcional)</option>
+                                      {settings.categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                                   </select>
+                                </div>
+                             </div>
+                          </div>
+
+                          <div className="pt-4">
+                             <div className="flex items-center justify-between mb-4 border-b border-gray-50 pb-2">
+                                <label className="block text-[10px] font-black text-emerald-600 uppercase tracking-widest ml-1">Produtos Específicos (Prioridade)</label>
+                                <div className="flex items-center gap-2 bg-gray-100 rounded-full px-3 py-1">
+                                   <SearchIcon className="h-3 w-3 text-gray-400" />
+                                   <input 
+                                      type="text" 
+                                      placeholder="Filtrar produtos..." 
+                                      className="bg-transparent border-none outline-none text-[9px] font-bold w-24"
+                                      value={promoProductSearch}
+                                      onChange={e => setPromoProductSearch(e.target.value)}
+                                   />
+                                </div>
+                             </div>
+                             
+                             <div className="max-h-48 overflow-y-auto no-scrollbar grid grid-cols-1 gap-1 p-2 bg-gray-50 rounded-2xl border border-gray-100 shadow-inner">
+                                {products
+                                  .filter(p => p.name.toLowerCase().includes(promoProductSearch.toLowerCase()) || p.code.toLowerCase().includes(promoProductSearch.toLowerCase()))
+                                  .map(product => {
+                                   const isSelected = (card.productIds || []).includes(product.id);
+                                   return (
+                                      <label key={product.id} className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${isSelected ? 'bg-emerald-50 border border-emerald-100' : 'hover:bg-white border border-transparent'}`}>
+                                         <input 
+                                            type="checkbox" 
+                                            className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                                            checked={isSelected}
+                                            onChange={() => {
+                                               const n = [...(settings.promoCategoryCards || [])];
+                                               const currentIds = n[idx].productIds || [];
+                                               if (isSelected) {
+                                                  n[idx].productIds = currentIds.filter(id => id !== product.id);
+                                               } else {
+                                                  n[idx].productIds = [...currentIds, product.id];
+                                               }
+                                               setSettings({...settings, promoCategoryCards: n});
+                                            }}
+                                         />
+                                         <div className="flex items-center gap-2">
+                                            <img src={product.image} className="w-6 h-6 rounded object-contain bg-white" />
+                                            <div className="flex flex-col">
+                                               <span className="text-[10px] font-bold text-gray-700 leading-none">{product.name}</span>
+                                               <span className="text-[8px] font-black text-emerald-600 uppercase mt-0.5">{product.code}</span>
+                                            </div>
+                                         </div>
+                                      </label>
+                                   );
+                                })}
+                             </div>
+                             <p className="text-[8px] font-bold text-gray-400 mt-2 italic px-1">* Se houver produtos selecionados, o filtro de categorias será ignorado para este card.</p>
+                          </div>
+                       </div>
+                    </div>
+                 ))}
+                 
+                 {(settings.promoCategoryCards || []).length === 0 && (
+                    <div className="col-span-full py-20 bg-gray-50 rounded-[40px] border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-center">
+                       <Tags className="h-12 w-12 text-gray-200 mb-4" />
+                       <p className="text-gray-400 font-bold uppercase text-xs tracking-widest">Nenhum card promocional criado.</p>
+                       <button 
+                        onClick={() => setSettings({...settings, promoCategoryCards: [{ id: Math.random().toString(36).substr(2, 9), title: 'Nova Promoção', imageUrl: '', categories: [], productIds: [], position: 'top', isActive: true }]})}
+                        className="mt-6 text-emerald-600 font-black text-[10px] uppercase underline underline-offset-4"
+                       >
+                          Começar Agora
+                       </button>
+                    </div>
+                 )}
+              </div>
+
+              <div className="flex justify-end pt-10">
+                 <button 
+                  onClick={() => handleSaveSettings()} 
+                  disabled={saveStatus === 'saving'}
+                  className="bg-emerald-600 text-white px-12 py-5 rounded-[24px] font-black uppercase text-xs tracking-widest shadow-xl flex items-center gap-4 transition-all hover:scale-105"
+                 >
+                   {saveStatus === 'saving' ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
+                   {saveStatus === 'saving' ? 'Salvando...' : 'Publicar Alterações'}
+                 </button>
+              </div>
+            </div>
+          )}
+
           {activeTab === 'settings' && (
             <div className="space-y-8 animate-in fade-in duration-500 pb-20">
               <div className="flex justify-between items-center gap-4 mb-8">
@@ -494,7 +758,7 @@ export const Admin: React.FC<AdminProps> = ({ products, setProducts, settings, s
                   <div className="flex justify-between items-center border-b border-white/10 pb-6">
                     <h4 className="text-[11px] font-black text-white uppercase tracking-[0.2em]">CATEGORIAS DO CATÁLOGO</h4>
                     <button 
-                      onClick={() => setSettings({...settings, categories: [...settings.categories, { id: Math.random().toString(36).substr(2, 9), name: '', image: '' }]})}
+                      onClick={() => setSettings({...settings, categories: [...settings.categories, { id: Math.random().toString(36).substr(2, 9), name: '', image: '', bannerImage: '' }]})}
                       className="text-emerald-500 text-[11px] font-black uppercase tracking-widest hover:text-emerald-400 transition-colors flex items-center gap-2"
                     >
                       <Plus className="h-4 w-4" /> Nova
@@ -502,61 +766,96 @@ export const Admin: React.FC<AdminProps> = ({ products, setProducts, settings, s
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {settings.categories.map((cat, idx) => (
-                      <div key={cat.id} className="bg-[#111827]/40 p-5 rounded-[32px] border border-white/5 flex items-center gap-5 relative group transition-all hover:bg-[#111827]/60">
+                      <div key={cat.id} className="bg-[#111827]/40 p-5 rounded-[32px] border border-white/5 flex flex-col gap-4 relative group transition-all hover:bg-[#111827]/60">
                         <button 
                           onClick={() => setSettings({...settings, categories: settings.categories.filter((_, i) => i !== idx)})}
-                          className="absolute -top-1.5 -right-1.5 p-1.5 bg-red-500/10 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100 shadow-lg"
+                          className="absolute -top-1.5 -right-1.5 p-1.5 bg-red-500/10 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100 shadow-lg z-10"
                         >
                           <X className="h-3.5 w-3.5" />
                         </button>
                         
-                        <div className="w-20 h-20 bg-slate-800/80 rounded-2xl flex items-center justify-center shrink-0 overflow-hidden border border-white/5 shadow-inner">
-                          {cat.image ? (
-                            <img src={cat.image} className="w-full h-full object-cover" alt={cat.name} />
-                          ) : (
-                            <ImageIcon className="h-8 w-8 text-white/10" />
-                          )}
+                        <div className="flex items-center gap-5">
+                          <div className="w-16 h-16 bg-slate-800/80 rounded-2xl flex items-center justify-center shrink-0 overflow-hidden border border-white/5 shadow-inner">
+                            {cat.image ? (
+                              <img src={cat.image} className="w-full h-full object-cover" alt={cat.name} />
+                            ) : (
+                              <ImageIcon className="h-6 w-6 text-white/10" />
+                            )}
+                          </div>
+                          <div className="flex-grow">
+                             <input 
+                               type="text" 
+                               placeholder="Nome da Categoria"
+                               className="w-full bg-[#111827]/40 border-none rounded-xl px-4 py-3 text-white font-bold text-xs outline-none focus:ring-1 focus:ring-emerald-500/50 placeholder:text-white/20"
+                               value={cat.name}
+                               onChange={e => {
+                                 const n = [...settings.categories];
+                                 n[idx].name = e.target.value;
+                                 setSettings({...settings, categories: n});
+                               }}
+                             />
+                          </div>
                         </div>
 
-                        <div className="flex-grow space-y-3">
-                          <div className="relative">
-                            <input 
-                              type="text" 
-                              placeholder="Nome da Categoria"
-                              className="w-full bg-[#111827]/40 border-none rounded-xl px-4 py-3 text-white font-bold text-xs outline-none focus:ring-1 focus:ring-emerald-500/50 placeholder:text-white/20"
-                              value={cat.name}
-                              onChange={e => {
-                                const n = [...settings.categories];
-                                n[idx].name = e.target.value;
-                                setSettings({...settings, categories: n});
-                              }}
-                            />
-                          </div>
-                          <div className="relative flex items-center gap-2">
-                             <div className="relative flex-grow">
-                                <input 
-                                  type="text" 
-                                  placeholder="URL da Imagem..."
-                                  className="w-full bg-[#111827]/40 border-none rounded-xl px-4 py-2 text-white/30 text-[9px] outline-none placeholder:text-white/10"
-                                  value={cat.image}
-                                  onChange={e => {
-                                    const n = [...settings.categories];
-                                    n[idx].image = e.target.value;
-                                    setSettings({...settings, categories: n});
-                                  }}
-                                />
-                             </div>
-                             <button 
-                                onClick={() => triggerUpload(url => {
-                                  const n = [...settings.categories];
-                                  n[idx].image = url;
-                                  setSettings({...settings, categories: n});
-                                })}
-                                className="p-2.5 bg-slate-800 rounded-xl text-white/40 hover:text-emerald-500 transition-colors border border-white/5"
-                              >
-                                <Camera className="h-4 w-4" />
-                              </button>
-                          </div>
+                        <div className="space-y-3">
+                           <div>
+                              <label className="block text-[8px] font-black text-white/20 uppercase mb-1 ml-1">Ícone Redondo</label>
+                              <div className="relative flex items-center gap-2">
+                                <div className="relative flex-grow">
+                                   <input 
+                                     type="text" 
+                                     placeholder="URL Ícone..."
+                                     className="w-full bg-[#111827]/40 border-none rounded-xl px-4 py-2 text-white/30 text-[9px] outline-none placeholder:text-white/10"
+                                     value={cat.image}
+                                     onChange={e => {
+                                       const n = [...settings.categories];
+                                       /* Fixed: url was not defined, should be e.target.value */
+                                       n[idx].image = e.target.value;
+                                       setSettings({...settings, categories: n});
+                                     }}
+                                   />
+                                </div>
+                                <button 
+                                   onClick={() => triggerUpload(url => {
+                                     const n = [...settings.categories];
+                                     n[idx].image = url;
+                                     setSettings({...settings, categories: n});
+                                   })}
+                                   className="p-2.5 bg-slate-800 rounded-xl text-white/40 hover:text-emerald-500 transition-colors border border-white/5"
+                                 >
+                                   <Camera className="h-4 w-4" />
+                                 </button>
+                              </div>
+                           </div>
+                           
+                           <div>
+                              <label className="block text-[8px] font-black text-white/20 uppercase mb-1 ml-1">Banner Separador (Horizontal)</label>
+                              <div className="relative flex items-center gap-2">
+                                <div className="relative flex-grow">
+                                   <input 
+                                     type="text" 
+                                     placeholder="URL Banner Separador..."
+                                     className="w-full bg-[#111827]/40 border-none rounded-xl px-4 py-2 text-white/30 text-[9px] outline-none placeholder:text-white/10"
+                                     value={cat.bannerImage || ''}
+                                     onChange={e => {
+                                       const n = [...settings.categories];
+                                       n[idx].bannerImage = e.target.value;
+                                       setSettings({...settings, categories: n});
+                                     }}
+                                   />
+                                </div>
+                                <button 
+                                   onClick={() => triggerUpload(url => {
+                                     const n = [...settings.categories];
+                                     n[idx].bannerImage = url;
+                                     setSettings({...settings, categories: n});
+                                   })}
+                                   className="p-2.5 bg-slate-800 rounded-xl text-white/40 hover:text-blue-500 transition-colors border border-white/5"
+                                 >
+                                   <ImagePlusIcon className="h-4 w-4" />
+                                 </button>
+                              </div>
+                           </div>
                         </div>
                       </div>
                     ))}
@@ -566,6 +865,15 @@ export const Admin: React.FC<AdminProps> = ({ products, setProducts, settings, s
                 <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm space-y-6">
                   <h4 className="text-[10px] font-black text-emerald-600 uppercase tracking-widest border-b border-gray-50 pb-4 flex items-center gap-2"><Palette className="h-4 w-4" /> Identidade & Branding</h4>
                   <div><label className="block text-[10px] font-black text-gray-400 uppercase mb-2">Nome da Marca</label><input type="text" className="w-full p-4 bg-gray-50 rounded-2xl font-bold" value={settings.brandName} onChange={e => setSettings({...settings, brandName: e.target.value})} /></div>
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-2">Formato Nomes Categoria</label>
+                    <select className="w-full p-4 bg-gray-50 rounded-2xl font-bold" value={settings.categoryTitleCase || 'uppercase'} onChange={e => setSettings({...settings, categoryTitleCase: e.target.value as any})}>
+                      <option value="uppercase">MAIÚSCULAS</option>
+                      <option value="lowercase">minúsculas</option>
+                      <option value="capitalize">Capitalizado (Inicial Maiúscula)</option>
+                      <option value="normal">Normal (Como escrito)</option>
+                    </select>
+                  </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div><label className="block text-[10px] font-black text-gray-400 uppercase mb-2">Cor Primária</label><div className="flex items-center gap-2"><input type="color" className="w-10 h-10 rounded-lg cursor-pointer" value={settings.primaryColor} onChange={e => setSettings({...settings, primaryColor: e.target.value})} /><input type="text" className="flex-grow p-3 bg-gray-50 rounded-xl font-bold text-[10px] uppercase" value={settings.primaryColor} onChange={e => setSettings({...settings, primaryColor: e.target.value})} /></div></div>
                     <div><label className="block text-[10px] font-black text-gray-400 uppercase mb-2">Tema</label><button onClick={() => setSettings({...settings, themeMode: settings.themeMode === 'light' ? 'dark' : 'light'})} className="w-full p-3 bg-gray-50 rounded-xl font-bold text-[10px] uppercase flex items-center justify-between">{settings.themeMode === 'light' ? <Sun className="h-4 w-4 text-amber-500" /> : <Moon className="h-4 w-4 text-blue-400" />} {settings.themeMode}</button></div>
@@ -999,11 +1307,86 @@ export const Admin: React.FC<AdminProps> = ({ products, setProducts, settings, s
 
           {activeTab === 'products' && (
             <div className="space-y-6 animate-in fade-in duration-500">
-              <div className="flex justify-between items-center gap-4 mb-6">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
                 <div><h3 className="text-2xl font-black text-gray-900 tracking-tight">Catálogo de SKUs</h3><p className="text-gray-500 font-medium">Gestão de produtos industriais.</p></div>
                 <button onClick={() => setEditingProduct({ id: '', code: '', ean: '', name: '', description: '', category: settings.categories[0]?.name || 'Todas', price: 0, image: '', inStock: true, isHighlighted: false, expirationDate: '', bulaUrl: '', nutritionalInfo: '', indicationsImageUrl: '', indicationsText: '', showBula: true, showNutritionalInfo: true })} className="bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg">Novo SKU</button>
               </div>
-              <div className="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden"><div className="overflow-x-auto"><table className="w-full text-left"><thead className="bg-gray-50 border-b border-gray-100"><tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest"><th className="px-8 py-5">Item</th><th className="px-8 py-5">Preço</th><th className="px-8 py-5">Status</th><th className="px-8 py-5 text-right">Ações</th></tr></thead><tbody className="divide-y divide-gray-50">{products.map((p) => (<tr key={p.id} className="group hover:bg-gray-50/50 transition-colors"><td className="px-8 py-5 flex items-center gap-4"><img src={p.image} className="w-10 h-10 rounded-xl object-contain border border-gray-100 shadow-sm" /><div className="font-bold text-gray-900 text-sm">{p.name}</div></td><td className="px-8 py-5 font-black text-emerald-600">R$ {p.price.toFixed(2)}</td><td className="px-8 py-5"><span className={`px-2 py-1 rounded-full text-[9px] font-black uppercase ${p.inStock ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>{p.inStock ? 'Ativo' : 'Esgotado'}</span></td><td className="px-8 py-5 text-right"><div className="flex justify-end gap-2"><button onClick={() => setEditingProduct(p)} className="p-2 text-gray-400 hover:text-emerald-600 transition-colors"><Edit2 className="h-4 w-4" /></button><button onClick={() => { if(confirm('Excluir?')) setProducts(products.filter(item => item.id !== p.id)); }} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><Trash2 className="h-4 w-4" /></button></div></td></tr>))}</tbody></table></div></div>
+
+              {/* BLOCO DE BUSCA E SCANNER ADICIONADO AO ADMIN */}
+              <div className="flex flex-col sm:flex-row gap-4 mb-10 p-6 bg-white rounded-[32px] border border-gray-100 shadow-sm animate-in slide-in-from-top-2 duration-500">
+                <div className="relative flex-grow group">
+                  <SearchIcon className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-300 group-focus-within:text-emerald-500 transition-colors" />
+                  <input 
+                    type="text" 
+                    placeholder="Buscar SKU por nome ou código..." 
+                    className="w-full pl-14 pr-6 py-5 bg-gray-50/50 rounded-2xl border-2 border-transparent focus:border-emerald-500 outline-none font-bold text-sm transition-all"
+                    value={skuSearchTerm}
+                    onChange={e => setSkuSearchTerm(e.target.value)}
+                  />
+                </div>
+                <button 
+                  onClick={startAdminScanner}
+                  className="flex items-center justify-center gap-3 px-8 py-5 bg-[#111827] text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl active:scale-95 transition-all"
+                >
+                  <ScanLine className="h-5 w-5" />
+                  <span className="hidden sm:inline">Scanner SKU</span>
+                </button>
+              </div>
+
+              <div className="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead className="bg-gray-50 border-b border-gray-100">
+                      <tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                        <th className="px-8 py-5">Item</th>
+                        <th className="px-8 py-5">Preço</th>
+                        <th className="px-8 py-5">Status</th>
+                        <th className="px-8 py-5 text-right">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {products
+                        .filter(p => 
+                          p.name.toLowerCase().includes(skuSearchTerm.toLowerCase()) || 
+                          p.code.toLowerCase().includes(skuSearchTerm.toLowerCase())
+                        )
+                        .map((p) => (
+                          <tr key={p.id} className="group hover:bg-gray-50/50 transition-colors">
+                            <td className="px-8 py-5 flex items-center gap-4">
+                              <img src={p.image} className="w-10 h-10 rounded-xl object-contain border border-gray-100 shadow-sm" />
+                              <div className="flex flex-col">
+                                <div className="font-bold text-gray-900 text-sm">{p.name}</div>
+                                <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">{p.code}</span>
+                              </div>
+                            </td>
+                            <td className="px-8 py-5 font-black text-emerald-600">R$ {p.price.toFixed(2)}</td>
+                            <td className="px-8 py-5">
+                              <span className={`px-2 py-1 rounded-full text-[9px] font-black uppercase ${p.inStock ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
+                                {p.inStock ? 'Ativo' : 'Esgotado'}
+                              </span>
+                            </td>
+                            <td className="px-8 py-5 text-right">
+                              <div className="flex justify-end gap-2">
+                                <button onClick={() => setEditingProduct(p)} className="p-2 text-gray-400 hover:text-emerald-600 transition-colors">
+                                  <Edit2 className="h-4 w-4" />
+                                </button>
+                                <button onClick={() => { if(confirm('Excluir?')) setProducts(products.filter(item => item.id !== p.id)); }} className="p-2 text-gray-400 hover:text-red-500 transition-colors">
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                  {products.filter(p => p.name.toLowerCase().includes(skuSearchTerm.toLowerCase()) || p.code.toLowerCase().includes(skuSearchTerm.toLowerCase())).length === 0 && (
+                    <div className="py-20 text-center">
+                      <ImageIcon className="h-10 w-10 text-gray-100 mx-auto mb-4" />
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Nenhum SKU correspondente</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 

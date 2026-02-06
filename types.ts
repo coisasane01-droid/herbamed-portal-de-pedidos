@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name: string;
@@ -14,6 +13,17 @@ export interface Category {
   id: string;
   name: string;
   image: string;
+  bannerImage?: string; // Novo campo para o separador visual
+}
+
+export interface PromoCategoryCard {
+  id: string;
+  title: string;
+  imageUrl: string;
+  categories: string[]; // Lista de categorias para filtrar (1 ou 2)
+  productIds?: string[]; // NOVO: Lista de IDs de produtos específicos para este card
+  position: 'top' | 'middle' | 'bottom';
+  isActive: boolean;
 }
 
 export interface Product {
@@ -118,4 +128,7 @@ export interface SiteSettings {
   // FRETE
   enableFreeShipping?: boolean;
   freeShippingLabel?: string;
+  categoryTitleCase?: 'uppercase' | 'lowercase' | 'normal' | 'capitalize';
+  // NOVOS RECURSOS ADICIONAIS (ISOLADOS)
+  promoCategoryCards?: PromoCategoryCard[];
 }

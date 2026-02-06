@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ShoppingCart, User as UserIcon, Leaf, Menu, X, Settings, Home, Search, ShoppingBag, ChevronRight, Lock, MessageCircle, LogOut, Package, ShieldCheck, ChevronRight as ChevronRightIcon, KeyRound, Mail, ShieldAlert, Loader2, CheckCircle } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -44,6 +43,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, settings, cartCount, c
   }, [location, isHome, isCart]);
 
   const handleSearchClick = () => {
+    window.dispatchEvent(new Event('trigger-catalog-search'));
     if (!isHome) {
       navigate('/', { state: { focusSearch: true } });
     } else {

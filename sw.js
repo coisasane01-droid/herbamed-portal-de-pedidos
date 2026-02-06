@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'herbamed-v3';
+const CACHE_NAME = 'herbamed-v4';
 
 const FILES_TO_CACHE = [
   './',
@@ -30,6 +30,7 @@ self.addEventListener('activate', event => {
       Promise.all(
         keys.map(key => {
           if (key !== CACHE_NAME) {
+            console.log('Removendo cache antigo:', key);
             return caches.delete(key);
           }
         })
@@ -39,36 +40,54 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// Estratégia Network-First para garantir persistência de atualizações
+// Estratégia Híbrida Inteligente
 self.addEventListener('fetch', event => {
   // EXCEÇÃO PARA WEBHOOK DO MAKE - PERMITE ENVIO BINÁRIO DIRETO
   if (event.request.url.includes("hook.eu1.make.com")) return;
 
+  // Ignora requisições que não sejam GET ou não sejam HTTP
   if (event.request.method !== 'GET' || !event.request.url.startsWith('http')) {
     return;
   }
 
-  const isCritical = event.request.mode === 'navigate' || event.request.url.includes('manifest.json');
+  const isNavigation = event.request.mode === 'navigate';
+  const isManifest = event.request.url.includes('manifest.json');
 
-  if (isCritical) {
+  if (isNavigation || isManifest) {
+    // ESTRATÉGIA: NETWORK-FIRST
+    // Prioriza a rede para garantir que o HTML e o Manifesto sejam sempre os mais recentes.
+    // Se falhar (offline), usa o cache.
     event.respondWith(
-      fetch(event.request).then(networkResponse => {
-        return caches.open(CACHE_NAME).then(cache => {
-          cache.put(event.request, networkResponse.clone());
-          return networkResponse;
-        });
-      }).catch(() => {
-        return caches.match(event.request);
-      })
-    );
-  } else {
-    event.respondWith(
-      caches.match(event.request).then(response => {
-        return response || fetch(event.request).then(networkResponse => {
+      fetch(event.request)
+        .then(networkResponse => {
           return caches.open(CACHE_NAME).then(cache => {
             cache.put(event.request, networkResponse.clone());
             return networkResponse;
           });
+        })
+        .catch(() => {
+          return caches.match(event.request);
+        })
+    );
+  } else {
+    // ESTRATÉGIA: STALE-WHILE-REVALIDATE
+    // Para imagens, scripts e estilos: entrega o cache IMEDIATAMENTE (rápido)
+    // mas busca na rede em segundo plano para atualizar o cache para a próxima vez.
+    event.respondWith(
+      caches.open(CACHE_NAME).then(cache => {
+        return cache.match(event.request).then(cachedResponse => {
+          const fetchPromise = fetch(event.request)
+            .then(networkResponse => {
+              if (networkResponse && networkResponse.status === 200) {
+                cache.put(event.request, networkResponse.clone());
+              }
+              return networkResponse;
+            })
+            .catch(() => {
+              // Silenciosamente falha o fetch se estiver offline
+            });
+
+          return cachedResponse || fetchPromise;
         });
       })
     );
