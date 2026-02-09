@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { useStore } from './store/useStore';
-import { Layout } from './components/Layout';
+import { Layout } from './components/components/Layout';
 import { Catalog } from './pages/Catalog';
 import { Cart } from './pages/Cart';
 import { Checkout } from './pages/Checkout';

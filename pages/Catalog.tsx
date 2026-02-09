@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 // ✅ CAMINHOS CORRETOS (2 níveis, não 3)
 import Layout from "../components/components/Layout";
 import PromoCategoryCarousel from "../components/components/PromoCategoryCarousel";
-import PromoCategoryPopup from "../components/PromoCategoryPopup";
-import IsolatedProductCard from "../components/IsolatedProductCard";
+import PromoCategoryPopup from "../components/components/PromoCategoryPopup";
+import IsolatedProductCard from "../components/components/IsolatedProductCard";
 
 import { supabase } from "../lib/supabase";
 
