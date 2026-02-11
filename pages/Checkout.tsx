@@ -139,29 +139,38 @@ export const Checkout: React.FC<{
 
   /* ================= SUBMIT ================= */
   const handleSubmit = async () => {
-    const order: Order = {
-      id: Math.random().toString(36).substring(2, 8).toUpperCase(),
-      date: new Date().toLocaleDateString('pt-BR'),
-      customerEmail: user?.email || 'convidado',
-      customer: {
-        razaoSocial: user?.razaoSocial || '',
-        cnpj: user?.cnpj || '',
-        responsible: user?.name || '',
-        phone: user?.contato || ''
-      },
-      items: cart,
-      total,
-      billingTerm: settings.billingOptions[0],
-      status: 'Recebido'
-    };
+  const order: Order = {
+    id: Math.random().toString(36).substring(2, 8).toUpperCase(),
+    date: new Date().toLocaleDateString('pt-BR'),
+    customerEmail: user?.email || 'convidado',
+    customer: {
+      razaoSocial: user?.razaoSocial || '',
+      cnpj: user?.cnpj || '',
+      responsible: user?.name || '',
+      phone: user?.contato || ''
+    },
+    items: cart,
+    total,
+    billingTerm: settings.billingOptions[0],
+    status: 'Recebido'
+  };
+
+  setIsProcessing(true);
+
+  try {
+    await sendToWebhook(order); // 🔥 AGORA ESPERA ENVIAR
 
     setSuccess(true);
     setLastOrder(order);
     onPlaceOrder(order);
     onClearCart();
 
-    sendToWebhook(order);
-  };
+  } catch (error) {
+    console.error('Erro ao enviar webhook:', error);
+  } finally {
+    setIsProcessing(false);
+  }
+};
 
   /* ================= SUCESSO ================= */
   if (success && lastOrder) {
