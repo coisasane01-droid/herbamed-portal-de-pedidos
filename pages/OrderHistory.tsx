@@ -5,6 +5,8 @@ import {
 } from 'lucide-react';
 import { Link, Navigate } from 'react-router-dom';
 import { Order, User, SiteSettings } from '../types';
+import { supabase } from '../lib/supabase';
+
 
 export const OrderHistory: React.FC<{
   orders: Order[];
@@ -70,6 +72,24 @@ export const OrderHistory: React.FC<{
 
     (window as any).html2pdf().from(element).set(opt).save();
   };
+  
+  const deleteOrder = async (orderId: string) => {
+  const confirmDelete = window.confirm("Tem certeza que deseja excluir este pedido?");
+  if (!confirmDelete) return;
+
+  const { error } = await supabase
+    .from('orders')
+    .delete()
+    .eq('id', orderId);
+    alert("Pedido excluído com sucesso");
+
+  if (error) {
+    console.error('Erro ao excluir pedido:', error);
+    alert('Erro ao excluir pedido');
+  } else {
+    window.location.reload();
+  }
+};
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12 pb-32">
@@ -132,6 +152,12 @@ export const OrderHistory: React.FC<{
                   >
                     <ExternalLink size={14} /> Suporte
                   </a>
+                  <button
+    onClick={() => deleteOrder(order.id)}
+    className="px-5 py-3 border border-red-500 text-red-500 rounded-xl text-xs font-black uppercase"
+  >
+    Excluir
+  </button>
                 </div>
               </div>
 
