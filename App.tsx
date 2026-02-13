@@ -124,11 +124,45 @@ const App: React.FC = () => {
     cart, addToCart, removeFromCart, updateCartQuantity, clearCart,
     orders, addOrder, setOrders
   } = useStore();
+  const [showUpdate, setShowUpdate] = React.useState(false);
+React.useEffect(() => {
+  const handleUpdate = () => {
+    setShowUpdate(true);
+  };
+
+  window.addEventListener('swUpdated', handleUpdate);
+
+  return () => {
+    window.removeEventListener('swUpdated', handleUpdate);
+  };
+}, []);
 
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
     <Router>
+    {showUpdate && (
+  <div style={{
+    position: "fixed",
+    bottom: 20,
+    left: 20,
+    right: 20,
+    background: "#111827",
+    color: "white",
+    padding: "12px 16px",
+    borderRadius: 8,
+    zIndex: 9999
+  }}>
+    Nova versão disponível
+    <button
+      onClick={() => window.location.reload()}
+      style={{ marginLeft: 12 }}
+    >
+      Atualizar
+    </button>
+  </div>
+)}
+
       <ThemeManager 
         themeMode={settings.themeMode} 
         primaryColor={settings.primaryColor} 

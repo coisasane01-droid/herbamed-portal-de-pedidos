@@ -8,24 +8,9 @@
     />
 
     <title>HERBAMED - Portal de Pedidos</title>
-    <link rel="manifest" id="pwa-manifest" />
+    <link rel="manifest" href="/manifest.json" />
 <link rel="icon" href="/favicon.ico" />
-
-
-    <!-- Script para Detecção de PWA Duplo (Site vs Admin) -->
-    <script>
-      (function () {
-        const isAdmin = location.hash.includes('/admin');
-        const manifestLink = document.createElement('link');
-        manifestLink.rel = 'manifest';
-        manifestLink.id = 'pwa-manifest';
-        manifestLink.href = isAdmin
-          ? './admin/manifest.json'
-          : './manifest.json';
-        document.head.appendChild(manifestLink);
-      })();
-    </script>
-
+    
     <!-- SEO Básico -->
     <meta
       name="description"
@@ -39,29 +24,27 @@
       content="Catálogo oficial Herbamed. Realize seus pedidos industriais com facilidade e segurança."
     />
     <meta
-      <meta property="og:image" content="/share.png" />
-<meta property="og:url" content="/" />
-
+      property="og:image"
+      content="https://herbamedportal.netlify.app/share.png"
     />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:type" content="website" />
     <meta
-      <meta property="og:image" content="/share.png" />
-<meta property="og:url" content="/" />
-
+      property="og:url"
+      content="https://herbamedportal.netlify.app/"
+    />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="HERBAMED - Portal de Pedidos" />
     <meta
       name="twitter:description"
-      content="Catálogo oficial Herbamed. Realize seus pedidos com facilidade e segurança."
+      content="Catálogo oficial Herbamed. Realize seus pedidos industriais com facilidade e segurança."
     />
     <meta
-      <meta property="og:image" content="/share.png" />
-<meta property="og:url" content="/" />
-
+      name="twitter:image"
+      content="https://herbamedportal.netlify.app/share.png"
     />
 
     <!-- PWA -->
@@ -128,6 +111,6 @@
 
   <body class="bg-gray-50 text-gray-900 overflow-x-hidden">
     <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
+    <script type="module" src="/admin/index.tsx"></script>
   </body>
 </html>

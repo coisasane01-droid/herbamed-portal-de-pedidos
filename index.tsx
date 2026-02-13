@@ -6,19 +6,30 @@ import App from './App';
 // Registro do Service Worker e solicitação de permissão de notificação
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').then(registration => {
-      console.log('SW registrado com sucesso:', registration.scope);
-      
-      // Solicita permissão para notificações
-      if ('Notification' in window) {
-        Notification.requestPermission().then(permission => {
-          if (permission === 'granted') {
-            console.log('Permissão de notificação concedida');
+    const isAdmin = window.location.hash.includes('/admin');
+
+    const swFile = isAdmin 
+      ? '/sw-admin.js' 
+      : '/sw-site.js';
+
+    navigator.serviceWorker.register(swFile).then(registration => {
+
+      // Detecta nova versão
+      registration.onupdatefound = () => {
+        const newWorker = registration.installing;
+
+        newWorker.onstatechange = () => {
+          if (
+            newWorker.state === 'installed' &&
+            navigator.serviceWorker.controller
+          ) {
+            window.dispatchEvent(new Event('swUpdated'));
           }
-        });
-      }
+        };
+      };
+
     }).catch(err => {
-      console.log('Falha ao registrar SW:', err);
+      console.log('Erro ao registrar SW:', err);
     });
   });
 }
@@ -34,3 +45,8 @@ root.render(
     <App />
   </React.StrictMode>
 );
+navigator.serviceWorker.addEventListener("message", event => {
+  if (event.data?.type === "SW_UPDATED") {
+    window.dispatchEvent(new Event("swUpdated"));
+  }
+});
